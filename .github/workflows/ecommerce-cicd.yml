@@ -1,0 +1,210 @@
+name: E-commerce CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: Check application
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install backend dependencies
+        run: npm ci --prefix backend
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check backend/server.js
+          node --check backend/config/supabase.js
+          node --check frontend.js
+
+  publish:
+    name: Build and publish Docker image
+    runs-on: ubuntu-latest
+    needs: ci
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: harshithreddy382
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            harshithreddy382/ecommerce-app:latest
+            harshithreddy382/ecommerce-app:${{ github.sha }}
+
+  deploy:
+    name: Deploy through AWS Systems Manager
+    runs-on: ubuntu-latest
+    needs: publish
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+
+      - name: Deploy image and verify health
+        shell: bash
+        env:
+          IMAGE: harshithreddy382/ecommerce-app:${{ github.sha }}
+          INSTANCE_ID: i-02a1ed3f5ae5be372
+        run: |
+          set -Eeuo pipefail
+
+          deploy_script=$(cat <<'REMOTE_SCRIPT'
+          #!/bin/bash
+          set -Eeuo pipefail
+
+          ENV_FILE=/opt/ecommerce/.env
+          CONTAINER=ecommerce-app
+          HEALTH_URL=http://127.0.0.1/api/health
+          NEW_IMAGE='__IMAGE__'
+
+          if [[ ! -f "$ENV_FILE" ]]; then
+            echo "Required runtime environment file is missing: $ENV_FILE" >&2
+            exit 1
+          fi
+
+          PREVIOUS_IMAGE="$(docker inspect --format '{{.Image}}' "$CONTAINER" 2>/dev/null || true)"
+          docker pull "$NEW_IMAGE"
+
+          restore_previous() {
+            if [[ -z "$PREVIOUS_IMAGE" ]]; then
+              echo "No previous container image was available to restore." >&2
+              return 1
+            fi
+
+            if ! docker run --detach \
+              --name "$CONTAINER" \
+              --publish 80:3000 \
+              --restart unless-stopped \
+              --env-file "$ENV_FILE" \
+              "$PREVIOUS_IMAGE"; then
+              echo "Could not restart the previous image." >&2
+              return 1
+            fi
+
+            for attempt in $(seq 1 30); do
+              if curl --fail --silent --show-error "$HEALTH_URL" >/dev/null; then
+                echo "Previous image was restored and passed its health check." >&2
+                return 0
+              fi
+              sleep 5
+            done
+
+            echo "Previous image restarted but did not pass its health check." >&2
+            return 1
+          }
+
+          if docker container inspect "$CONTAINER" >/dev/null 2>&1; then
+            docker stop "$CONTAINER"
+            docker rm "$CONTAINER"
+          fi
+
+          if ! docker run --detach \
+            --name "$CONTAINER" \
+            --publish 80:3000 \
+            --restart unless-stopped \
+            --env-file "$ENV_FILE" \
+            "$NEW_IMAGE"; then
+            echo "Could not start the new container; attempting rollback." >&2
+            restore_previous || true
+            exit 1
+          fi
+
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error "$HEALTH_URL" >/dev/null; then
+              echo "Deployment health check passed."
+              exit 0
+            fi
+            sleep 5
+          done
+
+          echo "New container failed its health check; attempting rollback." >&2
+          docker rm --force "$CONTAINER" >/dev/null 2>&1 || true
+          restore_previous || true
+
+          exit 1
+          REMOTE_SCRIPT
+          )
+
+          deploy_script="${deploy_script//__IMAGE__/$IMAGE}"
+          encoded_script=$(printf '%s' "$deploy_script" | base64 --wrap=0)
+          ssm_command="printf '%s' '$encoded_script' | base64 --decode | bash"
+          parameters=$(jq -n --arg command "$ssm_command" '{commands: [$command]}')
+          command_id=$(aws ssm send-command \
+            --document-name AWS-RunShellScript \
+            --instance-ids "$INSTANCE_ID" \
+            --parameters "$parameters" \
+            --query 'Command.CommandId' \
+            --output text)
+
+          echo "SSM command ID: $command_id"
+          deadline=$((SECONDS + 900))
+          invocation_error=$(mktemp)
+          trap 'rm -f "$invocation_error"' EXIT
+
+          while (( SECONDS < deadline )); do
+            if invocation=$(aws ssm get-command-invocation \
+              --command-id "$command_id" \
+              --instance-id "$INSTANCE_ID" \
+              --output json 2>"$invocation_error"); then
+              status=$(jq -r '.Status' <<<"$invocation")
+              case "$status" in
+                Success)
+                  jq -r '.StandardOutputContent // ""' <<<"$invocation"
+                  exit 0
+                  ;;
+                Failed|TimedOut|Cancelled|DeliveryTimedOut|ExecutionTimedOut|Undeliverable|Terminated)
+                  echo "SSM deployment finished with status: $status" >&2
+                  jq -r '"Output:\n" + (.StandardOutputContent // "") + "\nError output:\n" + (.StandardErrorContent // "")' <<<"$invocation" >&2
+                  exit 1
+                  ;;
+              esac
+            elif ! grep -q 'InvocationDoesNotExist' "$invocation_error"; then
+              cat "$invocation_error" >&2
+              exit 1
+            fi
+
+            sleep 10
+          done
+
+          echo "Timed out waiting for the SSM deployment after 15 minutes." >&2
+          if invocation=$(aws ssm get-command-invocation \
+            --command-id "$command_id" \
+            --instance-id "$INSTANCE_ID" \
+            --output json 2>"$invocation_error"); then
+            jq -r '"Status: " + .Status + "\nOutput:\n" + (.StandardOutputContent // "") + "\nError output:\n" + (.StandardErrorContent // "")' <<<"$invocation" >&2
+          else
+            cat "$invocation_error" >&2
+          fi
+          exit 1
