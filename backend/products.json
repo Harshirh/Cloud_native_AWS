@@ -1,0 +1,14 @@
+[
+  { "id": 1, "name": "Red printed T-shirt", "price": 50, "rating": 4, "image": "/images/product-1.jpg" },
+  { "id": 2, "name": "HRX sports Shoes", "price": 75, "rating": 4, "image": "/images/product-2.jpg" },
+  { "id": 3, "name": "HRX Gray Trackpants", "price": 45, "rating": 4, "image": "/images/product-3.jpg" },
+  { "id": 4, "name": "Blue Printed T-shirt", "price": 55, "rating": 4, "image": "/images/product-4.jpg" },
+  { "id": 5, "name": "Puma Gray Sports Shoes", "price": 85, "rating": 4, "image": "/images/product-5.jpg" },
+  { "id": 6, "name": "Black Printed T-Shirt", "price": 55, "rating": 4, "image": "/images/product-6.jpg" },
+  { "id": 7, "name": "HRX Slot of 3 Socks", "price": 30, "rating": 4, "image": "/images/product-7.jpg" },
+  { "id": 8, "name": "Black Fossil Watch", "price": 120, "rating": 4, "image": "/images/product-8.jpg" },
+  { "id": 9, "name": "Black Spatrix Watch", "price": 135, "rating": 4, "image": "/images/product-9.jpg" },
+  { "id": 10, "name": "Black HRX Shoes", "price": 65, "rating": 4, "image": "/images/product-10.jpg" },
+  { "id": 11, "name": "Gray Nike Shoes", "price": 95, "rating": 4, "image": "/images/product-11.jpg" },
+  { "id": 12, "name": "HRX Black Trackpants", "price": 50, "rating": 4, "image": "/images/product-12.jpg" }
+]
