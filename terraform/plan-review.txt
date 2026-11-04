@@ -1,0 +1,511 @@
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+ <= read (data resources)
+
+Terraform will perform the following actions:
+
+  # data.aws_iam_policy_document.application_logs will be read during apply
+  # (config refers to values not yet known)
+ <= data "aws_iam_policy_document" "application_logs" {
+      + id            = (known after apply)
+      + json          = (known after apply)
+      + minified_json = (known after apply)
+
+      + statement {
+          + actions   = [
+              + "logs:CreateLogStream",
+              + "logs:PutLogEvents",
+            ]
+          + effect    = "Allow"
+          + resources = [
+              + (known after apply),
+            ]
+          + sid       = "WriteOnlyToApplicationLogGroup"
+        }
+    }
+
+  # aws_cloudwatch_log_group.application will be created
+  + resource "aws_cloudwatch_log_group" "application" {
+      + arn                         = (known after apply)
+      + deletion_protection_enabled = (known after apply)
+      + id                          = (known after apply)
+      + log_group_class             = (known after apply)
+      + name                        = "/ecommerce/application"
+      + name_prefix                 = (known after apply)
+      + region                      = "us-east-1"
+      + retention_in_days           = 7
+      + skip_destroy                = false
+      + tags                        = {
+          + "Name" = "ecommerce-cloudnative-application-logs"
+        }
+      + tags_all                    = {
+          + "ManagedBy" = "Terraform"
+          + "Name"      = "ecommerce-cloudnative-application-logs"
+          + "Project"   = "ecommerce-cloudnative"
+        }
+    }
+
+  # aws_cloudwatch_metric_alarm.high_cpu will be created
+  + resource "aws_cloudwatch_metric_alarm" "high_cpu" {
+      + actions_enabled                       = true
+      + alarm_description                     = "EC2 average CPU utilization exceeded 80% for one basic-monitoring 5-minute period."
+      + alarm_name                            = "ecommerce-cloudnative-cpu-over-80-percent"
+      + arn                                   = (known after apply)
+      + comparison_operator                   = "GreaterThanThreshold"
+      + dimensions                            = (known after apply)
+      + evaluate_low_sample_count_percentiles = (known after apply)
+      + evaluation_periods                    = 1
+      + id                                    = (known after apply)
+      + metric_name                           = "CPUUtilization"
+      + namespace                             = "AWS/EC2"
+      + period                                = 300
+      + region                                = "us-east-1"
+      + statistic                             = "Average"
+      + tags_all                              = {
+          + "ManagedBy" = "Terraform"
+          + "Project"   = "ecommerce-cloudnative"
+        }
+      + threshold                             = 80
+      + treat_missing_data                    = "notBreaching"
+    }
+
+  # aws_cloudwatch_metric_alarm.instance_status_check will be created
+  + resource "aws_cloudwatch_metric_alarm" "instance_status_check" {
+      + actions_enabled                       = true
+      + alarm_description                     = "An EC2 system or instance status check is failing."
+      + alarm_name                            = "ecommerce-cloudnative-ec2-status-check-failed"
+      + arn                                   = (known after apply)
+      + comparison_operator                   = "GreaterThanThreshold"
+      + dimensions                            = (known after apply)
+      + evaluate_low_sample_count_percentiles = (known after apply)
+      + evaluation_periods                    = 1
+      + id                                    = (known after apply)
+      + metric_name                           = "StatusCheckFailed"
+      + namespace                             = "AWS/EC2"
+      + period                                = 300
+      + region                                = "us-east-1"
+      + statistic                             = "Maximum"
+      + tags_all                              = {
+          + "ManagedBy" = "Terraform"
+          + "Project"   = "ecommerce-cloudnative"
+        }
+      + threshold                             = 0
+      + treat_missing_data                    = "missing"
+    }
+
+  # aws_iam_instance_profile.application will be created
+  + resource "aws_iam_instance_profile" "application" {
+      + arn         = (known after apply)
+      + create_date = (known after apply)
+      + id          = (known after apply)
+      + name        = "ecommerce-cloudnative-instance-profile"
+      + name_prefix = (known after apply)
+      + path        = "/"
+      + role        = "ecommerce-cloudnative-ec2-role"
+      + tags_all    = {
+          + "ManagedBy" = "Terraform"
+          + "Project"   = "ecommerce-cloudnative"
+        }
+      + unique_id   = (known after apply)
+    }
+
+  # aws_iam_policy.application_logs will be created
+  + resource "aws_iam_policy" "application_logs" {
+      + arn              = (known after apply)
+      + attachment_count = (known after apply)
+      + description      = "Allows the Docker awslogs driver to create streams and write only to the application log group."
+      + id               = (known after apply)
+      + name             = "ecommerce-cloudnative-cloudwatch-log-writer"
+      + name_prefix      = (known after apply)
+      + path             = "/"
+      + policy           = (known after apply)
+      + policy_id        = (known after apply)
+      + tags_all         = {
+          + "ManagedBy" = "Terraform"
+          + "Project"   = "ecommerce-cloudnative"
+        }
+    }
+
+  # aws_iam_role.application will be created
+  + resource "aws_iam_role" "application" {
+      + arn                   = (known after apply)
+      + assume_role_policy    = jsonencode(
+            {
+              + Statement = [
+                  + {
+                      + Action    = "sts:AssumeRole"
+                      + Effect    = "Allow"
+                      + Principal = {
+                          + Service = "ec2.amazonaws.com"
+                        }
+                    },
+                ]
+              + Version   = "2012-10-17"
+            }
+        )
+      + create_date           = (known after apply)
+      + force_detach_policies = false
+      + id                    = (known after apply)
+      + managed_policy_arns   = (known after apply)
+      + max_session_duration  = 3600
+      + name                  = "ecommerce-cloudnative-ec2-role"
+      + name_prefix           = (known after apply)
+      + path                  = "/"
+      + tags_all              = {
+          + "ManagedBy" = "Terraform"
+          + "Project"   = "ecommerce-cloudnative"
+        }
+      + unique_id             = (known after apply)
+
+      + inline_policy (known after apply)
+    }
+
+  # aws_iam_role_policy_attachment.application_logs will be created
+  + resource "aws_iam_role_policy_attachment" "application_logs" {
+      + id         = (known after apply)
+      + policy_arn = (known after apply)
+      + role       = "ecommerce-cloudnative-ec2-role"
+    }
+
+  # aws_iam_role_policy_attachment.ssm_core will be created
+  + resource "aws_iam_role_policy_attachment" "ssm_core" {
+      + id         = (known after apply)
+      + policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+      + role       = "ecommerce-cloudnative-ec2-role"
+    }
+
+  # aws_instance.application will be created
+  + resource "aws_instance" "application" {
+      + ami                                  = (sensitive value)
+      + arn                                  = (known after apply)
+      + associate_public_ip_address          = true
+      + availability_zone                    = (known after apply)
+      + disable_api_stop                     = (known after apply)
+      + disable_api_termination              = (known after apply)
+      + ebs_optimized                        = (known after apply)
+      + enable_primary_ipv6                  = (known after apply)
+      + force_destroy                        = false
+      + get_password_data                    = false
+      + host_id                              = (known after apply)
+      + host_resource_group_arn              = (known after apply)
+      + iam_instance_profile                 = "ecommerce-cloudnative-instance-profile"
+      + id                                   = (known after apply)
+      + instance_initiated_shutdown_behavior = (known after apply)
+      + instance_lifecycle                   = (known after apply)
+      + instance_state                       = (known after apply)
+      + instance_type                        = "t3.micro"
+      + ipv6_address_count                   = (known after apply)
+      + ipv6_addresses                       = (known after apply)
+      + key_name                             = (known after apply)
+      + monitoring                           = false
+      + outpost_arn                          = (known after apply)
+      + password_data                        = (known after apply)
+      + placement_group                      = (known after apply)
+      + placement_group_id                   = (known after apply)
+      + placement_partition_number           = (known after apply)
+      + primary_network_interface_id         = (known after apply)
+      + private_dns                          = (known after apply)
+      + private_ip                           = (known after apply)
+      + public_dns                           = (known after apply)
+      + public_ip                            = (known after apply)
+      + region                               = "us-east-1"
+      + secondary_private_ips                = (known after apply)
+      + security_groups                      = (known after apply)
+      + source_dest_check                    = true
+      + spot_instance_request_id             = (known after apply)
+      + subnet_id                            = (known after apply)
+      + tags                                 = {
+          + "Name" = "ecommerce-cloudnative-ec2"
+        }
+      + tags_all                             = {
+          + "ManagedBy" = "Terraform"
+          + "Name"      = "ecommerce-cloudnative-ec2"
+          + "Project"   = "ecommerce-cloudnative"
+        }
+      + tenancy                              = (known after apply)
+      + user_data                            = <<-EOT
+            #!/bin/bash
+            set -Eeuo pipefail
+            
+            exec > >(tee -a /var/log/ecommerce-bootstrap.log | logger -t ecommerce-bootstrap -s 2>/dev/console) 2>&1
+            
+            APP_IMAGE="harshithreddy382/ecommerce-app:latest"
+            AWS_REGION="us-east-1"
+            LOG_GROUP="/ecommerce/application"
+            
+            dnf install -y docker
+            
+            if ! rpm -q amazon-ssm-agent >/dev/null 2>&1; then
+              dnf install -y "https://s3.${AWS_REGION}.amazonaws.com/amazon-ssm-${AWS_REGION}/latest/linux_amd64/amazon-ssm-agent.rpm"
+            fi
+            
+            systemctl enable --now amazon-ssm-agent
+            systemctl is-active --quiet amazon-ssm-agent
+            
+            systemctl enable --now docker
+            docker pull "${APP_IMAGE}"
+            
+            install -d -o root -g root -m 700 /opt/ecommerce
+            
+            cat > /usr/local/sbin/start-ecommerce <<'START_SCRIPT'
+            #!/bin/bash
+            set -Eeuo pipefail
+            
+            APP_IMAGE="harshithreddy382/ecommerce-app:latest"
+            AWS_REGION="us-east-1"
+            LOG_GROUP="/ecommerce/application"
+            ENV_FILE="/opt/ecommerce/.env"
+            
+            if [[ ! -f "${ENV_FILE}" ]]; then
+              echo "Create /opt/ecommerce/.env before starting the application." >&2
+              exit 1
+            fi
+            
+            for required_name in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY; do
+              if ! grep -qE "^${required_name}=.+$" "${ENV_FILE}"; then
+                echo "A required environment variable is missing from /opt/ecommerce/.env." >&2
+                exit 1
+              fi
+            done
+            
+            if ! grep -q '^PORT=3000$' "${ENV_FILE}"; then
+              echo "PORT must be set to 3000 in /opt/ecommerce/.env." >&2
+              exit 1
+            fi
+            
+            chmod 600 "${ENV_FILE}"
+            
+            docker run --detach \
+              --name ecommerce-app \
+              --publish 80:3000 \
+              --restart unless-stopped \
+              --env-file "${ENV_FILE}" \
+              --log-driver awslogs \
+              --log-opt "awslogs-region=${AWS_REGION}" \
+              --log-opt "awslogs-group=${LOG_GROUP}" \
+              --log-opt awslogs-stream=ecommerce-app \
+              --log-opt awslogs-create-group=false \
+              "${APP_IMAGE}"
+            START_SCRIPT
+            
+            chmod 750 /usr/local/sbin/start-ecommerce
+            echo "Bootstrap complete. Add /opt/ecommerce/.env, then run sudo /usr/local/sbin/start-ecommerce."
+        EOT
+      + user_data_base64                     = (known after apply)
+      + user_data_replace_on_change          = false
+      + vpc_security_group_ids               = (known after apply)
+
+      + capacity_reservation_specification (known after apply)
+
+      + cpu_options (known after apply)
+
+      + ebs_block_device (known after apply)
+
+      + enclave_options (known after apply)
+
+      + ephemeral_block_device (known after apply)
+
+      + instance_market_options (known after apply)
+
+      + maintenance_options (known after apply)
+
+      + metadata_options {
+          + http_endpoint               = "enabled"
+          + http_protocol_ipv6          = "disabled"
+          + http_put_response_hop_limit = (known after apply)
+          + http_tokens                 = "required"
+          + instance_metadata_tags      = (known after apply)
+        }
+
+      + network_interface (known after apply)
+
+      + primary_network_interface (known after apply)
+
+      + private_dns_name_options (known after apply)
+
+      + root_block_device {
+          + delete_on_termination = true
+          + device_name           = (known after apply)
+          + encrypted             = true
+          + iops                  = (known after apply)
+          + kms_key_id            = (known after apply)
+          + tags_all              = (known after apply)
+          + throughput            = (known after apply)
+          + volume_id             = (known after apply)
+          + volume_size           = 12
+          + volume_type           = "gp3"
+        }
+
+      + secondary_network_interface (known after apply)
+    }
+
+  # aws_internet_gateway.application will be created
+  + resource "aws_internet_gateway" "application" {
+      + arn      = (known after apply)
+      + id       = (known after apply)
+      + owner_id = (known after apply)
+      + region   = "us-east-1"
+      + tags     = {
+          + "Name" = "ecommerce-cloudnative-igw"
+        }
+      + tags_all = {
+          + "ManagedBy" = "Terraform"
+          + "Name"      = "ecommerce-cloudnative-igw"
+          + "Project"   = "ecommerce-cloudnative"
+        }
+      + vpc_id   = (known after apply)
+    }
+
+  # aws_route_table.public will be created
+  + resource "aws_route_table" "public" {
+      + arn              = (known after apply)
+      + id               = (known after apply)
+      + owner_id         = (known after apply)
+      + propagating_vgws = (known after apply)
+      + region           = "us-east-1"
+      + route            = [
+          + {
+              + cidr_block                 = "0.0.0.0/0"
+              + gateway_id                 = (known after apply)
+                # (12 unchanged attributes hidden)
+            },
+        ]
+      + tags             = {
+          + "Name" = "ecommerce-cloudnative-public-routes"
+        }
+      + tags_all         = {
+          + "ManagedBy" = "Terraform"
+          + "Name"      = "ecommerce-cloudnative-public-routes"
+          + "Project"   = "ecommerce-cloudnative"
+        }
+      + vpc_id           = (known after apply)
+    }
+
+  # aws_route_table_association.public_subnet will be created
+  + resource "aws_route_table_association" "public_subnet" {
+      + id             = (known after apply)
+      + region         = "us-east-1"
+      + route_table_id = (known after apply)
+      + subnet_id      = (known after apply)
+    }
+
+  # aws_security_group.application will be created
+  + resource "aws_security_group" "application" {
+      + arn                    = (known after apply)
+      + description            = "Public HTTP for the website; administration uses Systems Manager, not SSH."
+      + egress                 = [
+          + {
+              + cidr_blocks      = [
+                  + "0.0.0.0/0",
+                ]
+              + description      = "HTTPS for Docker Hub, Supabase, package repositories, and Systems Manager"
+              + from_port        = 443
+              + ipv6_cidr_blocks = []
+              + prefix_list_ids  = []
+              + protocol         = "tcp"
+              + security_groups  = []
+              + self             = false
+              + to_port          = 443
+            },
+        ]
+      + id                     = (known after apply)
+      + ingress                = [
+          + {
+              + cidr_blocks      = [
+                  + "0.0.0.0/0",
+                ]
+              + description      = "Public E-Commerce website"
+              + from_port        = 80
+              + ipv6_cidr_blocks = []
+              + prefix_list_ids  = []
+              + protocol         = "tcp"
+              + security_groups  = []
+              + self             = false
+              + to_port          = 80
+            },
+        ]
+      + name                   = "ecommerce-cloudnative-http-only"
+      + name_prefix            = (known after apply)
+      + owner_id               = (known after apply)
+      + region                 = "us-east-1"
+      + revoke_rules_on_delete = false
+      + tags                   = {
+          + "Name" = "ecommerce-cloudnative-security-group"
+        }
+      + tags_all               = {
+          + "ManagedBy" = "Terraform"
+          + "Name"      = "ecommerce-cloudnative-security-group"
+          + "Project"   = "ecommerce-cloudnative"
+        }
+      + vpc_id                 = (known after apply)
+    }
+
+  # aws_subnet.public will be created
+  + resource "aws_subnet" "public" {
+      + arn                                            = (known after apply)
+      + assign_ipv6_address_on_creation                = false
+      + availability_zone                              = "us-east-1a"
+      + availability_zone_id                           = (known after apply)
+      + cidr_block                                     = "10.40.1.0/24"
+      + enable_dns64                                   = false
+      + enable_resource_name_dns_a_record_on_launch    = false
+      + enable_resource_name_dns_aaaa_record_on_launch = false
+      + id                                             = (known after apply)
+      + ipv6_cidr_block                                = (known after apply)
+      + ipv6_cidr_block_association_id                 = (known after apply)
+      + ipv6_native                                    = false
+      + map_public_ip_on_launch                        = true
+      + owner_id                                       = (known after apply)
+      + private_dns_hostname_type_on_launch            = (known after apply)
+      + region                                         = "us-east-1"
+      + tags                                           = {
+          + "Name" = "ecommerce-cloudnative-public-subnet"
+        }
+      + tags_all                                       = {
+          + "ManagedBy" = "Terraform"
+          + "Name"      = "ecommerce-cloudnative-public-subnet"
+          + "Project"   = "ecommerce-cloudnative"
+        }
+      + vpc_id                                         = (known after apply)
+    }
+
+  # aws_vpc.application will be created
+  + resource "aws_vpc" "application" {
+      + arn                                  = (known after apply)
+      + cidr_block                           = "10.40.0.0/16"
+      + default_network_acl_id               = (known after apply)
+      + default_route_table_id               = (known after apply)
+      + default_security_group_id            = (known after apply)
+      + dhcp_options_id                      = (known after apply)
+      + enable_dns_hostnames                 = true
+      + enable_dns_support                   = true
+      + enable_network_address_usage_metrics = (known after apply)
+      + id                                   = (known after apply)
+      + instance_tenancy                     = "default"
+      + ipv6_association_id                  = (known after apply)
+      + ipv6_cidr_block                      = (known after apply)
+      + ipv6_cidr_block_network_border_group = (known after apply)
+      + main_route_table_id                  = (known after apply)
+      + owner_id                             = (known after apply)
+      + region                               = "us-east-1"
+      + tags                                 = {
+          + "Name" = "ecommerce-cloudnative-vpc"
+        }
+      + tags_all                             = {
+          + "ManagedBy" = "Terraform"
+          + "Name"      = "ecommerce-cloudnative-vpc"
+          + "Project"   = "ecommerce-cloudnative"
+        }
+    }
+
+Plan: 15 to add, 0 to change, 0 to destroy.
+
+Changes to Outputs:
+  + application_log_group          = "/ecommerce/application"
+  + aws_region                     = "us-east-1"
+  + instance_id                    = (known after apply)
+  + instance_public_ip             = (known after apply)
+  + instance_type_free_tier_notice = "Configured instance type: t3.micro. Verify eligibility, credits, and usage in AWS Billing > Free Tier before applying."
+  + website_url                    = (known after apply)
